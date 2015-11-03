@@ -203,7 +203,6 @@ namespace KIP_Social_Pull
             // Set up call to historical processing
             ProcessFBDelegate pFBDel = new ProcessFBDelegate(processFBHistory);
             processInsight(pFBDel, json_insight, pull_date);
-            //processInsightNewPoints(pFBDel, json_insight, pull_date);
         }
 
         /// <summary>
@@ -223,13 +222,13 @@ namespace KIP_Social_Pull
 
             List<Facebook_field> fb_fields = amDB.getInsightFields();
 
-            foreach(JToken ins in insightArr)
+            foreach(JToken ins in insightArr) //for each insight field
             {
                 name_token = ins["name"].ToString();
                 period = ins["period"].ToString();
                 var key = name_token + ":" + period;
 
-                foreach (Facebook_field f in fb_fields)
+                foreach (Facebook_field f in fb_fields) //for each insight field being collected.
                 {
                     if (name_token == f.field_name && period == f.fetch_period)
                     {
@@ -245,140 +244,7 @@ namespace KIP_Social_Pull
 
         }
 
-        private void processInsightNewPoints(ProcessFBDelegate processFBRec, JObject json_insight, DateTime pull_date)
-        {
-            string name_token = "";
-            string period = "";
-            int i = 0;
-            JArray insightArr = JArray.Parse(json_insight["insights"]["data"].ToString());
-
-            foreach (JToken ins in insightArr)
-            //while (name_token != null)
-            {
-                name_token = ins["name"].ToString();
-                switch (name_token)
-                {
-                    case "page_video_views_unique":
-                        period = ins["period"].ToString();
-                        if (period == "day")
-                        {
-                            var running_total = false;
-                            var geo_total = false;
-                            processFBRec(name_token, period, pull_date, ins, running_total, geo_total);
-                        }
-                        break;
-
-                    case "page_positive_feedback_by_type":
-                        period = ins["period"].ToString();
-                        if (period == "day")
-                        {
-                            var running_total = false;
-                            var geo_total = false;
-                            processFBRec(name_token, period, pull_date, ins, running_total, geo_total);
-                        }
-                        break;
-
-                    case "page_stories_by_story_type":
-                        period = ins["period"].ToString();
-                        if (period == "day")
-                        {
-                            var running_total = false;
-                            var geo_total = false;
-                            processFBRec(name_token, period, pull_date, ins, running_total, geo_total);
-                        }
-                        break;
-
-                    case "page_video_views":
-                        period = ins["period"].ToString();
-                        if (period == "day") //|| period == "days_28")
-                        {
-                            var running_total = false;
-                            var geo_total = false;
-                            processFBRec(name_token, period, pull_date, ins, running_total, geo_total);
-                        }
-                        break;
-
-                    case "page_impressions":
-                        period = ins["period"].ToString();
-                        if (period == "day")
-                        {
-                            var running_total = false;
-                            var geo_total = false;
-                            processFBRec(name_token, period, pull_date, ins, running_total, geo_total);
-                        }
-                        break;
-
-                    case "page_impressions_unique":
-                        period = ins["period"].ToString(); ;
-                        if (period == "day")
-                        {
-                            var running_total = false;
-                            var geo_total = false;
-                            processFBRec(name_token, period, pull_date, ins, running_total, geo_total);
-                        }
-                        break;
-
-                    case "page_consumptions":
-                        period = ins["period"].ToString();
-                        if (period == "day")
-                        {
-                            var running_total = false;
-                            var geo_total = false;
-                            processFBRec(name_token, period, pull_date, ins, running_total, geo_total);
-                        }
-                        break;
-
-                    case "page_consumptions_unique":
-                        period = ins["period"].ToString();
-                        if (period == "day")
-                        {
-                            var running_total = false;
-                            var geo_total = false;
-                            processFBRec(name_token, period, pull_date, ins, running_total, geo_total);
-                        }
-                        break;
-                    case "page_impressions_by_country_unique":
-                        period = ins["period"].ToString();
-                        if (period == "day")
-                        {
-                            var running_total = false;
-                            var geo_total = false;
-                            processFBRec(name_token, period, pull_date, ins, running_total, geo_total);
-                        }
-                        break;
-                    case "page_story_adds_by_country_unique":
-                        period = ins["period"].ToString();
-                        if (period == "day")
-                        {
-                            var running_total = false;
-                            var geo_total = false;
-                            processFBRec(name_token, period, pull_date, ins, running_total, geo_total);
-                        }
-                        break;
-                    case "page_story_adds_by_country":
-                        period = ins["period"].ToString();
-                        if (period == "day")
-                        {
-                            var running_total = false;
-                            var geo_total = false;
-                            processFBRec(name_token, period, pull_date, ins, running_total, geo_total);
-                        }
-                        break;
-                    case "page_storytellers_by_country":
-                        period = ins["period"].ToString();
-                        if (period == "day")
-                        {
-                            var running_total = false;
-                            var geo_total = false;
-                            processFBRec(name_token, period, pull_date, ins, running_total, geo_total);
-                        }
-                        break;
-                }
-
-            }
-
-        }
-
+ 
 
         /// <summary>
         /// Insert a historical data record into a Facebook insights table. This should only be used on a initially blank table.
