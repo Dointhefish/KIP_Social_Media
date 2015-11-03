@@ -172,31 +172,6 @@ namespace KIP_Social_Pull
             ListMyChannels listMyChannelsChoreo = new ListMyChannels(session);
             string s_channels = yttb.getTembooData(listMyChannelsChoreo);
 
-            // Execute Choreo
-            /*
-            ListMyChannelsResultSet listMyChannelsResults;
-            try
-            {
-                listMyChannelsResults = listMyChannelsChoreo.execute();
-                //Console.WriteLine(listMyChannelsResults.Response);
-            }
-            catch
-            {
-                Console.WriteLine("exception thrown");
-                //refresh accessToken with refreshToken
-                accessToken = YTRefresh.RefreshAccessToken(session, client_id, client_secret, refreshToken);
-
-                Thread.Sleep(1000);
-                //try again
-                listMyChannelsChoreo.setAccessToken(accessToken);
-                listMyChannelsResults = listMyChannelsChoreo.execute();
-                //Console.WriteLine(listMyChannelsResults.Response);
-            }
-
-            //examine response
-            string s_channels = listMyChannelsResults.Response;
-             */
-
             JObject json_channels = JObject.Parse(s_channels);
 
             string no_records = (string)json_channels["pageInfo"]["totalResults"];
@@ -204,36 +179,8 @@ namespace KIP_Social_Pull
             string comments = (string)json_channels["items"][0]["statistics"]["commentCount"];
             string channel_id = (string)json_channels["items"][0]["id"];
 
-            /*
-            ListChannelsByID channelChereo = new ListChannelsByID(session);
-            channelChereo.setAccessToken(accessToken);
-            channelChereo.setChannelID(channel_id);
-            ListChannelsByIDResultSet channelChereoResults;
-            Thread.Sleep(1000);
-
-            try
-            {
-                channelChereoResults = channelChereo.execute();
-            }
-            catch
-            {
-                accessToken = YTRefresh.RefreshAccessToken(session, client_id, client_secret, refreshToken);
-                Thread.Sleep(1000);
-                channelChereo.setAccessToken(accessToken);
-                channelChereoResults = channelChereo.execute();
-            }
-            */
-
             ListMySubscribers listMySubscribersChoreo = new ListMySubscribers(session);
             // Set inputs
-            /*
-            listMySubscribersChoreo.setAccessToken(accessToken);
-            listMySubscribersChoreo.setMaxResults("50");
-            // Execute Choreo
-            Thread.Sleep(1000);
-            ListMySubscribersResultSet listMySubscribersResults = listMySubscribersChoreo.execute();
-            string s_subscribers = listMySubscribersResults.Response;
-            */
             listMySubscribersChoreo.setMaxResults("50");
             string s_subscribers = yttb.getTembooData(listMySubscribersChoreo);
 
@@ -264,14 +211,9 @@ namespace KIP_Social_Pull
             ListSearchResults listSearchResultsChoreo = new ListSearchResults(session);
 
             // Set inputs
-            //listSearchResultsChoreo.setAccessToken(accessToken);
             listSearchResultsChoreo.setChannelID(channel_id);
             listSearchResultsChoreo.setType("video");
             listSearchResultsChoreo.setMaxResults("50");
-
-            // Execute Choreo
-            //Thread.Sleep(1000);
-            //ListSearchResultsResultSet listSearchResultsResults = listSearchResultsChoreo.execute();
 
             string s_videos = yttb.getTembooData(listSearchResultsChoreo);//listSearchResultsResults.Response;
             JObject json_videos = JObject.Parse(s_videos);
@@ -303,12 +245,7 @@ namespace KIP_Social_Pull
 
             // Set inputs
             listVideosByIDChoreo.setVideoID(s_video_ids);
-            //listVideosByIDChoreo.setAccessToken(accessToken);
             listVideosByIDChoreo.setPart("statistics");
-
-            // Execute Choreo
-            //Thread.Sleep(1000); //Pause for a second to avoid API quota overuse
-            //ListVideosByIDResultSet listVideosByIDResults = listVideosByIDChoreo.execute();
 
             //loop on videos
             //tally comments, views, likes, favorites, dislikes
@@ -324,10 +261,7 @@ namespace KIP_Social_Pull
                 int dislikeCount = int.Parse((string)json_statistics["items"][i]["statistics"]["dislikeCount"]);
                 int favoriteCount = int.Parse((string)json_statistics["items"][i]["statistics"]["favoriteCount"]);
                 int commentCount = int.Parse((string)json_statistics["items"][i]["statistics"]["commentCount"]);
-                //int shareCount = fb.GetFBYTVideoShares(s_video_id);
-                //shareCount += tw.getTWYTVideoShares(s_video_id);
-                //Pause for a second to avoid API quota overuse
-                if (i % 4 == 0) Thread.Sleep(1000);
+
                 string country = "Unknown";
                 amDB.upsertYouTubeCounts(channel_id,
                     s_video_id,

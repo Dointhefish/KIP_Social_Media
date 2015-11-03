@@ -33,6 +33,11 @@ namespace KIP_Social_Pull
         TembooSession session;
         AwarenessMapDB amDB;
 
+        /// <summary>
+        /// Main Facebook class
+        /// Looks up authentication data in db. If not found, call Temboo services to get an accessToken.
+        /// Save it to the db.
+        /// </summary>
         public Facebook()
         {
             // Instantiate the Choreo, using a previously instantiated TembooSession object, eg:
@@ -78,7 +83,7 @@ namespace KIP_Social_Pull
             }
         }
 
-        //Processing delegate for realtime data of historical
+        //Processing delegate for realtime or historical Facebook data
         public delegate void ProcessFBDelegate(string name_token, 
             string period,
             DateTime pull_date,
@@ -86,8 +91,14 @@ namespace KIP_Social_Pull
             bool running_total, 
             bool Geo_total);
 
+        /// <summary>
+        /// Request and retrieve insights data.
+        ///     Get the page ID with the Temboo lookup service
+        ///     Get the insights data with the Temboo GetObject service
+        /// </summary>
         public void getFacebookData()
         {
+            /*
             URLLookup uRLLookupChoreo = new URLLookup(session);
 
             // Set inputs
@@ -112,33 +123,97 @@ namespace KIP_Social_Pull
             getObjectChoreo.setFields("insights");
             getObjectChoreo.setObjectID(page_id);
 
-            // Execute Choreo
+            // Execute GetObject Choreo
             GetObjectResultSet getObjectResults = getObjectChoreo.execute();
+
 
             // Print results
             //Console.WriteLine(getObjectResults.Response);
 
+            //Put results in JSON object
             JObject json_insight = JObject.Parse(getObjectResults.Response);
             string name_token = (string)json_insight["insights"]["data"][0]["name"];
             int i = 0;
             DateTime pull_date = DateTime.Now;
+            */
+            Search searchChoreo = new Search(session);
 
+            // Setup inputs for Temboo Facebook search
+            string since = DateTime.Now.AddDays(-5).ToString("yyyy-MM-dd");
+            string until = DateTime.Now.AddDays(1).ToString("yyyy-MM-dd");
+            searchChoreo.setObjectType("page");
+            searchChoreo.setFields("insights.since(" + since + ").until(" + until + ")");
+            searchChoreo.setAccessToken(accessToken);
+            searchChoreo.setQuery("KeepItPumping");
+
+            // Execute Choreo
+            SearchResultSet searchResults = searchChoreo.execute();
+            JObject json_insight = JObject.Parse(searchResults.Response);
+            string name_token = (string)json_insight["data"][0]["insights"]["data"][0]["name"];
+            json_insight = JObject.Parse(json_insight["data"][0].ToString());
+            int i = 0;
+            DateTime pull_date = DateTime.Now;
+
+            //Set up to call realtime processing
             ProcessFBDelegate pFBDel = new ProcessFBDelegate(processFBField);
             processInsight(pFBDel, json_insight, pull_date);
 
             //Console.WriteLine("found data = " + saved_fields);
         }
 
+        /// <summary>
+        /// Get FB historical data from files
+        /// </summary>
+        /// <param name="fileLocName">path and name of file containing FB insights data</param>
         public void getFBHistorical(String fileLocName)
         {
             //Read JSON file
             JObject json_insight = JObject.Parse(File.ReadAllText(fileLocName));
             ProcessFBDelegate pFBHist = new ProcessFBDelegate(processFBHistory);
+            //ProcessFBDelegate pFBHist = new ProcessFBDelegate(processFBField);
             DateTime pull_date = DateTime.Now;
-            //processInsight(pFBHist, json_insight, pull_date);
-            processInsightNewPoints(pFBHist, json_insight, pull_date);
+            processInsight(pFBHist, json_insight, pull_date);
+            //processInsightNewPoints(pFBHist, json_insight, pull_date);
         }
 
+        /// <summary>
+        /// Get FB historical data from FB
+        /// </summary>
+        /// <param name="since">YYY-MM-DD string for start date</param>
+        /// <param name="until">YYY-MM-DD string for end date</param>
+        public void getFBHistorical(string since, string until)
+        {
+            Console.WriteLine("********** From " + since + " to " + until + " ************");
+            Search searchChoreo = new Search(session);
+
+            // Setup inputs for Temboo Facebook search
+            searchChoreo.setObjectType("page");
+            searchChoreo.setFields("insights.since("+since+").until("+until+")");
+            searchChoreo.setAccessToken(accessToken);
+            searchChoreo.setQuery("KeepItPumping");
+
+            // Execute Choreo
+            SearchResultSet searchResults = searchChoreo.execute();
+            JObject json_insight = JObject.Parse(searchResults.Response);
+            string name_token = (string)json_insight["data"][0]["insights"]["data"][0]["name"];
+            json_insight = JObject.Parse(json_insight["data"][0].ToString());
+            int i = 0;
+            DateTime pull_date = DateTime.Now;
+
+            // Set up call to historical processing
+            ProcessFBDelegate pFBDel = new ProcessFBDelegate(processFBHistory);
+            processInsight(pFBDel, json_insight, pull_date);
+            //processInsightNewPoints(pFBDel, json_insight, pull_date);
+        }
+
+        /// <summary>
+        /// Loop through insights JSON data, find insights field and submit it for processing into the database,
+        ///     Each case determines if the point has a running total computed (running_total = true) and 
+        ///     if the value is reported to the Awareness Map (geo_total = true)
+        /// </summary>
+        /// <param name="processFBRec">Delegate of processing method</param>
+        /// <param name="json_insight">JSON insights data from Facebook</param>
+        /// <param name="pull_date">Date and time this data was pulled from FB</param>
         private void processInsight(ProcessFBDelegate processFBRec, JObject json_insight, DateTime pull_date)
         {
             string name_token = "";
@@ -146,15 +221,46 @@ namespace KIP_Social_Pull
             int i = 0;
             JArray insightArr = JArray.Parse(json_insight["insights"]["data"].ToString());
 
+            List<Facebook_field> fb_fields = amDB.getInsightFields();
+
             foreach(JToken ins in insightArr)
+            {
+                name_token = ins["name"].ToString();
+                period = ins["period"].ToString();
+                var key = name_token + ":" + period;
+
+                foreach (Facebook_field f in fb_fields)
+                {
+                    if (name_token == f.field_name && period == f.fetch_period)
+                    {
+                        if (period == "lifetime")
+                            processFBRec(name_token, period, pull_date, ins, false, false);
+                        else if (f.running_total == 1)
+                            processFBRec(name_token, period, pull_date, ins, true, false);
+                        else if (f.reporting_period == "day")
+                            processFBRec(name_token, period, pull_date, ins, false, false);
+                    }
+                }
+            }
+
+        }
+
+        private void processInsightNewPoints(ProcessFBDelegate processFBRec, JObject json_insight, DateTime pull_date)
+        {
+            string name_token = "";
+            string period = "";
+            int i = 0;
+            JArray insightArr = JArray.Parse(json_insight["insights"]["data"].ToString());
+
+            foreach (JToken ins in insightArr)
             //while (name_token != null)
             {
                 name_token = ins["name"].ToString();
                 switch (name_token)
                 {
-                    case "page_fans":
+                    case "page_video_views_unique":
                         period = ins["period"].ToString();
-                        if (period == "lifetime")
+                        if (period == "day")
                         {
                             var running_total = false;
                             var geo_total = false;
@@ -166,7 +272,7 @@ namespace KIP_Social_Pull
                         period = ins["period"].ToString();
                         if (period == "day")
                         {
-                            var running_total = true;
+                            var running_total = false;
                             var geo_total = false;
                             processFBRec(name_token, period, pull_date, ins, running_total, geo_total);
                         }
@@ -176,7 +282,7 @@ namespace KIP_Social_Pull
                         period = ins["period"].ToString();
                         if (period == "day")
                         {
-                            var running_total = true;
+                            var running_total = false;
                             var geo_total = false;
                             processFBRec(name_token, period, pull_date, ins, running_total, geo_total);
                         }
@@ -196,17 +302,17 @@ namespace KIP_Social_Pull
                         period = ins["period"].ToString();
                         if (period == "day")
                         {
-                            var running_total = true;
+                            var running_total = false;
                             var geo_total = false;
                             processFBRec(name_token, period, pull_date, ins, running_total, geo_total);
                         }
                         break;
 
                     case "page_impressions_unique":
-                        period = ins["period"].ToString();;
+                        period = ins["period"].ToString(); ;
                         if (period == "day")
                         {
-                            var running_total = true;
+                            var running_total = false;
                             var geo_total = false;
                             processFBRec(name_token, period, pull_date, ins, running_total, geo_total);
                         }
@@ -216,7 +322,7 @@ namespace KIP_Social_Pull
                         period = ins["period"].ToString();
                         if (period == "day")
                         {
-                            var running_total = true;
+                            var running_total = false;
                             var geo_total = false;
                             processFBRec(name_token, period, pull_date, ins, running_total, geo_total);
                         }
@@ -226,13 +332,6 @@ namespace KIP_Social_Pull
                         period = ins["period"].ToString();
                         if (period == "day")
                         {
-                            var running_total = true;
-                            var geo_total = true;
-                            processFBRec(name_token, period, pull_date, ins, running_total, geo_total);
-                        }
-                        if (period == "days_28")
-                        {
-                            period = "28_days";
                             var running_total = false;
                             var geo_total = false;
                             processFBRec(name_token, period, pull_date, ins, running_total, geo_total);
@@ -242,7 +341,7 @@ namespace KIP_Social_Pull
                         period = ins["period"].ToString();
                         if (period == "day")
                         {
-                            var running_total = true;
+                            var running_total = false;
                             var geo_total = false;
                             processFBRec(name_token, period, pull_date, ins, running_total, geo_total);
                         }
@@ -250,73 +349,24 @@ namespace KIP_Social_Pull
                     case "page_story_adds_by_country_unique":
                         period = ins["period"].ToString();
                         if (period == "day")
-                        {
-                            var running_total = true;
-                            var geo_total = true;
-                            processFBRec(name_token, period, pull_date, ins, running_total, geo_total);
-                        }
-                        break;
-                    case "page_fans_country":
-                        period = ins["period"].ToString();
-                        if (period == "lifetime")
                         {
                             var running_total = false;
                             var geo_total = false;
                             processFBRec(name_token, period, pull_date, ins, running_total, geo_total);
                         }
                         break;
-                }
-
-            }
-
-        }
-
-        private void processInsightNewPoints(ProcessFBDelegate processFBRec, JObject json_insight, DateTime pull_date)
-        {
-            string name_token = "";
-            string period = "";
-            int i = 0;
-            JArray insightArr = JArray.Parse(json_insight["insights"]["data"].ToString());
-
-            foreach (JToken ins in insightArr)
-            //while (name_token != null)
-            {
-                name_token = ins["name"].ToString();
-                switch (name_token)
-                {
-                    case "page_impressions_by_country_unique":
+                    case "page_story_adds_by_country":
                         period = ins["period"].ToString();
                         if (period == "day")
                         {
-                            var running_total = true;
+                            var running_total = false;
                             var geo_total = false;
                             processFBRec(name_token, period, pull_date, ins, running_total, geo_total);
                         }
                         break;
-
-                    case "page_story_adds_by_country_unique":
-                        period = ins["period"].ToString();
-                        if (period == "day")
-                        {
-                            var running_total = true;
-                            var geo_total = false;
-                            processFBRec(name_token, period, pull_date, ins, running_total, geo_total);
-                        }
-                        break;
-
                     case "page_storytellers_by_country":
                         period = ins["period"].ToString();
-                        if (period == "day") //|| period == "days_28")
-                        {
-                            var running_total = true;
-                            var geo_total = false;
-                            processFBRec(name_token, period, pull_date, ins, running_total, geo_total);
-                        }
-                        break;
-
-                    case "page_fans_country":
-                        period = ins["period"].ToString();
-                        if (period == "lifetime")
+                        if (period == "day")
                         {
                             var running_total = false;
                             var geo_total = false;
@@ -330,7 +380,15 @@ namespace KIP_Social_Pull
         }
 
 
-
+        /// <summary>
+        /// Insert a historical data record into a Facebook insights table. This should only be used on a initially blank table.
+        /// </summary>
+        /// <param name="name_token"></param>
+        /// <param name="period"></param>
+        /// <param name="pull_date"></param>
+        /// <param name="json_insight"></param>
+        /// <param name="running_total"></param>
+        /// <param name="Geo_total"></param>
         private void processFBHistory(string name_token, 
             string period,
             DateTime pull_date,
@@ -352,44 +410,46 @@ namespace KIP_Social_Pull
             int i = 0;
             string total_status = "";
             if (running_total && Geo_total)
-                total_status = "RUNNING";
+                total_status = "RUNNING"; //compute a running total and report to awareness map
+            else if (Geo_total && (period == "lifetime"))
+                total_status = "LIFE";  //report as is to awareness map
             else if (running_total)
-                total_status = "run";
+                total_status = "run";   //compute a running total
             else
                 total_status = period;
 
+            //Get the field title
             string field_title = json_insight["title"].ToString();
 
-            //JObject t_obj = getLastToken(json_insight["values"]);
+            //Get the field value array
             JArray t_arr = JArray.Parse(json_insight["values"].ToString());
 
+            //loop through all of the values for this insight field
             foreach(JToken t_obj in t_arr)
             {
-                var end_time = t_obj["end_time"].ToString();
-                //is there a category?
-
-                var dt_end = DateTime.Parse(DateTime.Parse(end_time).ToShortDateString());
-                string s = (t_obj["value"]).ToString();
-                Console.WriteLine("field=" + field_title);
+                var end_time = t_obj["end_time"].ToString(); //get the time stamp for this value
+                var dt_end = DateTime.Parse(DateTime.Parse(end_time).ToShortDateString()); //set up end_time to enable date comparison
+                string s = (t_obj["value"]).ToString(); //convert to JSON value to a string
+                Console.WriteLine("field=" + field_title + " AS OF " + dt_end.ToShortDateString());
                 int j = 0;
                 int field_value = 0;
-                Dictionary<string, string> value_cats = new Dictionary<string,string>();
 
+                //is there a category?
+                Dictionary<string, string> value_cats = new Dictionary<string,string>();
                 try
                 {
-                    value_cats = JsonConvert.DeserializeObject<Dictionary<string, string>>(s);
+                    value_cats = JsonConvert.DeserializeObject<Dictionary<string, string>>(s); //create an array of categories and values if they exist
                 }
                 catch
                 {
-                    field_value = int.Parse(s);
+                    field_value = int.Parse(s); //no category data so just get the value
                 }
                 
                 if (value_cats.Count > 0 && (total_status == "RUNNING" || total_status == "run"))
                 {
                     foreach (var item in value_cats)
                     {
-                        int db_field_value = amDB.findFBDBRecord(name_token, period, total_status, 
-                            item.Key, dt_end, ref field_title);
+                        int db_field_value = amDB.findFBDBRecord(name_token, period, total_status, item.Key, dt_end, ref field_title);
                         if (db_field_value >= 0)
                         {
                             //Insert new record and carry the value forward to any future records
@@ -494,6 +554,15 @@ namespace KIP_Social_Pull
             }
         }
 
+        /// <summary>
+        /// Process a facebook insight field, insert it if it's new, calculate a running total if total_status = RUNNING or run
+        /// </summary>
+        /// <param name="name_token">name of the insight field</param>
+        /// <param name="period">sample period of the insight value</param>
+        /// <param name="pull_date">date Facebook was queried</param>
+        /// <param name="json_insight">JSON object containing the insight data</param>
+        /// <param name="running_total">calculate a running total</param>
+        /// <param name="Geo_total">publish this total to the Awareness map</param>
         private void processFBField(string name_token,
             string period,
             DateTime pull_date,
@@ -505,9 +574,11 @@ namespace KIP_Social_Pull
             int i = 0;
             string total_status = "";
             if (running_total && Geo_total)
-                total_status = "RUNNING";
+                total_status = "RUNNING"; //compute a running total and report to awareness map
+            else if (Geo_total && (period == "lifetime"))
+                total_status = "LIFE";    //report as is to awareness map
             else if (running_total)
-                total_status = "run";
+                total_status = "run";     //compute a running total
             else
                 total_status = period;
 
@@ -524,7 +595,7 @@ namespace KIP_Social_Pull
                 if (dt_end > last_date)
                 {
                     string s = (t_obj["value"]).ToString();
-                    Console.WriteLine("field=" + name_token + ":" + field_title);
+                    Console.WriteLine("field=" + name_token + ":" + field_title + " AS OF " + dt_end.ToShortDateString());
                     int j = 0;
 
                     try

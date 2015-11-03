@@ -39,6 +39,13 @@ namespace KIP_Social_Pull
             //tweetRetrieval(tw);
 
             /*
+             * Twitter history retrieval
+             */
+            //tw.getTwitterHashtagData("KeepItPumping", DateTime.Parse("2015-10-14"));
+            //tw.getTwitterHashtagData("KeepItPumping", DateTime.Parse("2015-10-15"));
+            //tw.getTwitterHashtagData("KeepItPumping", DateTime.Parse("2015-10-16"));
+
+            /*
              * Load historical Facebook data from files
              */
             
@@ -60,31 +67,26 @@ namespace KIP_Social_Pull
             
             //while (true)
             //{
+            
                 Console.WriteLine(DateTime.Now.ToString());
                 
                 Console.WriteLine("YouTube:");
                 ytd.getYouTubeData();
 
-                //if (cycle_count > 2)
-                //{
-                    Console.WriteLine("YouTube Analytics:");
-                    DateTime startTime = DateTime.Parse(DateTime.Now.AddDays(-4).ToString("yyyy-MM-dd"));
-                    DateTime endTime = DateTime.Parse(DateTime.Now.ToString("yyyy-MM-dd"));
-                    yta.backFillYTAna(startTime, endTime);
-                    //cycle_count = 0;
-                //}
-                //else
-                    //cycle_count++;
+                Console.WriteLine("YouTube Analytics:");
+                DateTime startTime = DateTime.Parse(DateTime.Now.AddDays(-4).ToString("yyyy-MM-dd"));
+                DateTime endTime = DateTime.Parse(DateTime.Now.ToString("yyyy-MM-dd"));
+                yta.backFillYTAna(startTime, endTime);
                 
                 Console.WriteLine("Facebook:");
                 fb.getFacebookData();
-                
+              
                 Console.WriteLine("Twitter Hashtag: KeepItPumping");
                 tw.getTwitterHashtagData("KeepItPumping");
                 Console.WriteLine("Twitter User: @KeepItPumping");
                 tw.getTwitterUserData("@KeepItPumping");
                 Console.WriteLine("Done");
-
+              
                 //Thread.Sleep(900000);
             //}
             
@@ -92,7 +94,34 @@ namespace KIP_Social_Pull
         }
 
         public static void facebookHistorical(Facebook fb)
-        {
+        { 
+         
+            fb.getFBHistorical("2015-07-31", "2015-08-05");
+            fb.getFBHistorical("2015-08-05", "2015-08-10");
+            fb.getFBHistorical("2015-08-10", "2015-08-15");
+            fb.getFBHistorical("2015-08-15", "2015-08-20");
+            fb.getFBHistorical("2015-08-20", "2015-08-25");
+            fb.getFBHistorical("2015-08-25", "2015-08-30");
+            fb.getFBHistorical("2015-08-30", "2015-09-01");
+            fb.getFBHistorical("2015-09-01", "2015-09-05");
+            fb.getFBHistorical("2015-09-05", "2015-09-10");
+            fb.getFBHistorical("2015-09-10", "2015-09-15");
+            fb.getFBHistorical("2015-09-15", "2015-09-20");
+            fb.getFBHistorical("2015-09-20", "2015-09-25");
+            fb.getFBHistorical("2015-09-25", "2015-09-30");
+            fb.getFBHistorical("2015-09-30", "2015-10-01");
+            fb.getFBHistorical("2015-10-01", "2015-10-05");
+            fb.getFBHistorical("2015-10-05", "2015-10-10");
+            fb.getFBHistorical("2015-10-10", "2015-10-15");
+            fb.getFBHistorical("2015-10-15", "2015-10-19");
+            fb.getFBHistorical("2015-10-19", "2015-10-22");
+            fb.getFBHistorical("2015-10-22", "2015-10-24");
+            fb.getFBHistorical("2015-10-24", "2015-10-26");
+            fb.getFBHistorical("2015-10-26", "2015-10-28");
+            fb.getFBHistorical("2015-10-28", "2015-10-30");
+
+
+
             /*
             fb.getFBHistorical(@"C:\Users\abowers\Downloads\KIP Awareness v2\KIP Awareness\July_31_Aug_1_Insight.json");
             fb.getFBHistorical(@"C:\Users\abowers\Downloads\KIP Awareness v2\KIP Awareness\Aug_1-2_insight.json");
@@ -136,15 +165,21 @@ namespace KIP_Social_Pull
             fb.getFBHistorical(@"C:\Users\abowers\Downloads\KIP Awareness v1\Sept_11-12_Insight.json");
             fb.getFBHistorical(@"C:\Users\abowers\Downloads\KIP Awareness v1\Sept_12-13_Insight.json");
             fb.getFBHistorical(@"C:\Users\abowers\Downloads\KIP Awareness v1\Sept_13-14_Insight.json");
-   
-             */
-            fb.getFBHistorical(@"C:\Users\abowers\Downloads\KIP Awareness v2\KIP Awareness\Sept_15-26\Sept_15-16_Insight.json");
-            fb.getFBHistorical(@"C:\Users\abowers\Downloads\KIP Awareness v2\KIP Awareness\Sept_15-26\Sept_17-18_Insight.json");
-            fb.getFBHistorical(@"C:\Users\abowers\Downloads\KIP Awareness v2\KIP Awareness\Sept_15-26\Sept_19-20_Insight.json");
-            fb.getFBHistorical(@"C:\Users\abowers\Downloads\KIP Awareness v2\KIP Awareness\Sept_15-26\Sept_21-22_Insight.json");
-            fb.getFBHistorical(@"C:\Users\abowers\Downloads\KIP Awareness v2\KIP Awareness\Sept_15-26\Sept_23-24_Insight.json");
-            fb.getFBHistorical(@"C:\Users\abowers\Downloads\KIP Awareness v2\KIP Awareness\Sept_15-26\Sept_23-24_Insight.json");
-            fb.getFBHistorical(@"C:\Users\abowers\Downloads\KIP Awareness v2\KIP Awareness\Sept_15-26\Sept_25-26_Insight.json");
+
+            fb.getFBHistorical(@"C:\Users\abowers\Downloads\KIP Awareness v2\KIP Awareness\Sept_15-26\Sept_15-16_insight.json");
+            fb.getFBHistorical(@"C:\Users\abowers\Downloads\KIP Awareness v2\KIP Awareness\Sept_15-26\Sept_17-18_insight.json");
+            fb.getFBHistorical(@"C:\Users\abowers\Downloads\KIP Awareness v2\KIP Awareness\Sept_15-26\Sept_19-20_insight.json");
+            fb.getFBHistorical(@"C:\Users\abowers\Downloads\KIP Awareness v2\KIP Awareness\Sept_15-26\Sept_21-22_insight.json");
+            fb.getFBHistorical(@"C:\Users\abowers\Downloads\KIP Awareness v2\KIP Awareness\Sept_15-26\Sept_23-24_insight.json");
+            fb.getFBHistorical(@"C:\Users\abowers\Downloads\KIP Awareness v2\KIP Awareness\Sept_15-26\Sept_23-24_insight.json");
+            fb.getFBHistorical(@"C:\Users\abowers\Downloads\KIP Awareness v2\KIP Awareness\Sept_15-26\Sept_25-26_insight.json");
+            
+            fb.getFBHistorical(@"C:\Users\abowers\Downloads\KIP Awareness v2\KIP Awareness\Sept_15-26\Sept_27-30_insight.json");
+            fb.getFBHistorical(@"C:\Users\abowers\Downloads\KIP Awareness v2\KIP Awareness\Sept_15-26\Oct_1-4_insight.json");
+            fb.getFBHistorical(@"C:\Users\abowers\Downloads\KIP Awareness v2\KIP Awareness\Sept_15-26\Oct_5-9_insight.json");
+            fb.getFBHistorical(@"C:\Users\abowers\Downloads\KIP Awareness v2\KIP Awareness\Sept_15-26\Oct_9-12_insight.json");
+            fb.getFBHistorical(@"C:\Users\abowers\Downloads\KIP Awareness v2\KIP Awareness\Sept_15-26\Oct_12-15_insight.json");
+            */
 
         }
 

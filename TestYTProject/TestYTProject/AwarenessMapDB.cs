@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Data;
 using System.Data.Common;
 using System.Data.Sql;
 using System.Data.SqlClient;
@@ -14,13 +15,14 @@ namespace KIP_Social_Pull
     public class AwarenessMapDB
     {
         string ConnectionString = "";
-        string facebook_raw_table = "facebook_raw_insights";
-        //string facebook_insight_table = "facebook_insights_newpoints";
-        string facebook_insight_table = "facebook_insights_committed";
-        string FB_Commit_SP = "Commit_Facebook_Data";
+
         //string facebook_raw_table = "facebook_raw_test";
-        //string facebook_insight_table = "facebook_insights_bad";
+        string facebook_raw_table = "facebook_raw_insights";
+        //string facebook_insight_table = "facebook_insights_newpoints2";
+        string facebook_insight_table = "facebook_insights_committed";
         //string FB_Commit_SP = "Commit_Facebook_Test";
+        string FB_Commit_SP = "Commit_Facebook_Data";
+        string facebook_fields_table = "facebook_insights_fields";
         string youtube_analytics_table = "youtube_analytics";
         string youtube_committed = "youtube_committed";
 
@@ -695,6 +697,8 @@ namespace KIP_Social_Pull
                 p_total_status = p_total_type;
                 p_period = "days_28";
             }
+            else
+                p_total_status = p_total_type;
 
             SqlConnection conn = new SqlConnection(ConnectionString);
             //if this is a run or RUNNING, get the previous total to calc the new one
@@ -1143,6 +1147,28 @@ namespace KIP_Social_Pull
             }
 
         }
+
+        
+        public List<Facebook_field> getInsightFields()
+        {
+            string query = "SELECT field_name, fetch_period, report_period, running_total FROM " + facebook_fields_table + ";";
+            SqlConnection conn = new SqlConnection(ConnectionString);
+            SqlDataAdapter adapter = new SqlDataAdapter(query, conn);
+            DataSet fields = new DataSet();
+            adapter.Fill(fields, facebook_fields_table);
+            List<Facebook_field> fb_list = new List<Facebook_field>();
+            DataTable dt = fields.Tables[facebook_fields_table];
+            foreach(DataRow dr in dt.Rows)
+            {
+                Facebook_field ff = new Facebook_field(dr["field_name"].ToString(),
+                                                       dr["fetch_period"].ToString(),
+                                                       dr["report_period"].ToString(),
+                                                       int.Parse(dr["running_total"].ToString()));
+                fb_list.Add(ff);
+            }
+            return fb_list;
+        }
+        
 
     }
 }

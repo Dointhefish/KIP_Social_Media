@@ -175,6 +175,42 @@ namespace KIP_Social_Pull
             processTweeting(s_tweets, hashTag);
         }
 
+        public void getTwitterHashtagData(string hashTag, DateTime since)
+        {
+            Tweets tweetsChoreo = new Tweets(session);
+
+            // hastag search
+            tweetsChoreo.setAccessToken(accessToken);
+            tweetsChoreo.setQuery(hashTag);
+            tweetsChoreo.setAccessTokenSecret(accessTokenSecret);
+            tweetsChoreo.setConsumerSecret(consumer_secret);
+            tweetsChoreo.setConsumerKey(consumer_key);
+            tweetsChoreo.setCount("200");
+            tweetsChoreo.setUntil(since.ToString("yyyy-MM-dd"));
+
+            // Execute Choreo
+            TweetsResultSet tweetsResults = tweetsChoreo.execute();
+            //Create JSON objects
+            string s_tweets = tweetsResults.Response;
+            processTweeting(s_tweets, hashTag);
+
+            JObject json_tweets = JObject.Parse(s_tweets);
+            string tweet_id = (string)json_tweets["statuses"][0]["id"];
+
+            tweetsChoreo = new Tweets(session);
+            tweetsChoreo.setAccessToken(accessToken);
+            tweetsChoreo.setQuery(hashTag);
+            tweetsChoreo.setAccessTokenSecret(accessTokenSecret);
+            tweetsChoreo.setConsumerSecret(consumer_secret);
+            tweetsChoreo.setConsumerKey(consumer_key);
+            tweetsChoreo.setCount("200");
+            tweetsChoreo.setSinceId(tweet_id);
+
+            tweetsResults = tweetsChoreo.execute();
+            s_tweets = tweetsResults.Response;
+            processTweeting(s_tweets, hashTag);
+        }
+
         public void getTwitterUserData(string user_name)
         {
             //List
